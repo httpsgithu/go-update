@@ -5,8 +5,10 @@ import (
 	_ "crypto/sha512" // for tls cipher support
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"runtime"
 
 	"github.com/getlantern/go-update"
@@ -116,24 +118,27 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 
 	// no content means no available update
-	if resp.StatusCode == 204 {
+	if resp.StatusCode == http.StatusNoContent {
 		return nil, NoUpdateAvailable
 	}
 
-	defer resp.Body.Close()
 	respBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &Result{up: up}
-	if err := json.Unmarshal(respBytes, result); err != nil {
-		return nil, err
+	if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+		result := &Result{up: up}
+		if err := json.Unmarshal(respBytes, result); err != nil {
+			return nil, fmt.Errorf("json.Unmarshal: %v (text was %q)", err, string(respBytes))
+		}
+		return result, nil
+	} else {
+		return nil, errors.New(string(respBytes))
 	}
-
-	return result, nil
 }
 
 func (p *Params) CheckAndApplyUpdate(url string, up *update.Update) (result *Result, err error, errRecover error) {
