@@ -110,7 +110,12 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	// if it fails, you just won't be able to patch
 	if p.OS != "android" {
 		if up.TargetPath == "" {
-			p.Checksum = defaultChecksum()
+			var err error
+			p.Checksum, err = defaultChecksum()
+			if err != nil {
+				log.Errorf("Error while trying to get default checksum: %v", err)
+				return nil, err
+			}
 		} else {
 			checksum, err := update.ChecksumForFile(up.TargetPath)
 			if err != nil {
@@ -247,16 +252,16 @@ func (r *Result) Update() (err error, errRecover error) {
 	return r.up.FromUrl(r.Url)
 }
 
-func defaultChecksum() string {
+func defaultChecksum() (string, error) {
 	path, err := osext.Executable()
 	if err != nil {
-		return ""
+		return "", err
 	}
 
 	checksum, err := update.ChecksumForFile(path)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return hex.EncodeToString(checksum)
+	return hex.EncodeToString(checksum), nil
 }
