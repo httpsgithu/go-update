@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	mathrand "math/rand"
 	"net/http"
+	"net/http/httputil"
 	"runtime"
 	"time"
 
@@ -119,6 +120,7 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 		} else {
 			checksum, err := update.ChecksumForFile(up.TargetPath)
 			if err != nil {
+				log.Errorf("Could not get checksum: %v", err)
 				return nil, err
 			}
 			p.Checksum = hex.EncodeToString(checksum)
@@ -147,12 +149,26 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	// client.
 	req.Header.Set("X-Message-Nonce", fmt.Sprintf("%d", nonce))
 
+	dump, dumpErr := httputil.DumpRequestOut(req, true)
+	if dumpErr != nil {
+		log.Errorf("Could not dump request? %v", err)
+	} else {
+		log.Debugf("Sending request:\n%v", string(dump))
+	}
+
 	resp, err := update.HTTPClient.Do(req)
 	if err != nil {
 		log.Errorf("Error submitting update request: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	dump, dumpErr = httputil.DumpResponse(resp, false)
+	if err != nil {
+		log.Errorf("Could not dump response? %v", err)
+	} else {
+		log.Debugf("Received response:\n%v", string(dump))
+	}
 
 	// no content means no available update
 	if resp.StatusCode == 204 {
@@ -162,6 +178,7 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	// Reading message.
 	signature, err := hex.DecodeString(resp.Header.Get("X-Message-Signature"))
 	if err != nil {
+		log.Errorf("No signature header found")
 		return nil, err
 	}
 
