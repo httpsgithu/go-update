@@ -181,7 +181,7 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	case http.StatusExpectationFailed:
 		return nil, ErrUnsupportedOSArch // OS/Arch is not supported.
 	default:
-		return nil, errors.New("Could not reach update server.")
+		return nil, errors.New("Could not get a successful response from update server.")
 	}
 
 	// Reading message.
