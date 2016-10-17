@@ -31,7 +31,10 @@ var (
 	log = golog.LoggerFor("go-update.check")
 )
 
-var NoUpdateAvailable error = fmt.Errorf("No update available")
+var (
+	ErrNoUpdateAvailable error = fmt.Errorf("No update available")
+	ErrUnsupportedOSArch error = fmt.Errorf("OS/Arch is not supported")
+)
 
 type Params struct {
 	// protocol version
@@ -170,9 +173,15 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 		log.Debugf("Received response:\n%v", string(dump))
 	}
 
-	// no content means no available update
-	if resp.StatusCode == 204 {
-		return nil, NoUpdateAvailable
+	switch res.StatusCode {
+	case http.OK:
+		// Continue
+	case http.StatusNoContent:
+		return nil, ErrNoUpdateAvailable // No update available.
+	case http.StatusExpectationFailed:
+		return nil, ErrUnsupportedOSArch // OS/Arch is not supported.
+	default:
+		return nil, errors.New("Could not reach update server.")
 	}
 
 	// Reading message.
