@@ -173,8 +173,8 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 		log.Debugf("Received response:\n%v", string(dump))
 	}
 
-	switch res.StatusCode {
-	case http.OK:
+	switch resp.StatusCode {
+	case http.StatusOK:
 		// Continue
 	case http.StatusNoContent:
 		return nil, ErrNoUpdateAvailable // No update available.
