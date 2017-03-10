@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+
+	"github.com/getlantern/flashlight/pro"
 )
 
 type roundTripper struct {
@@ -82,6 +84,7 @@ func (d *Download) Get() (err error) {
 	if err != nil {
 		return
 	}
+	pro.PrepareForFronting(req)
 
 	// we have to add headers like this so they get used across redirects
 	trans := d.HttpClient.Transport
