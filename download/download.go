@@ -9,7 +9,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/getlantern/flashlight/pro"
+	"github.com/getlantern/flashlight/proxied"
 )
 
 type roundTripper struct {
@@ -84,7 +84,10 @@ func (d *Download) Get() (err error) {
 	if err != nil {
 		return
 	}
-	pro.PrepareForFronting(req)
+
+	frontedURL := *req.URL
+	frontedURL.Host = "d2yl1zps97e5mx.cloudfront.net"
+	proxied.PrepareForFronting(req, frontedURL.String())
 
 	// we have to add headers like this so they get used across redirects
 	trans := d.HttpClient.Transport
