@@ -61,7 +61,7 @@ func New(url string, target Target) *Download {
 	}
 }
 
-// Get() downloads the content of a url to a target destination.
+// Get downloads the content of a url to a target destination.
 //
 // Only HTTP/1.1 servers that implement the Range header support resuming a
 // partially completed download.
@@ -87,7 +87,6 @@ func (d *Download) Get() (err error) {
 
 	frontedURL := *req.URL
 	frontedURL.Host = "d2yl1zps97e5mx.cloudfront.net"
-	proxied.PrepareForFronting(req, frontedURL.String())
 
 	// we have to add headers like this so they get used across redirects
 	trans := d.HttpClient.Transport
@@ -97,6 +96,10 @@ func (d *Download) Get() (err error) {
 
 	d.HttpClient.Transport = &roundTripper{
 		RoundTripFn: func(r *http.Request) (*http.Response, error) {
+
+			// Always add the domain fronting header.
+			proxied.PrepareForFronting(req, frontedURL.String())
+
 			// add header for download continuation
 			if offset > 0 {
 				r.Header.Add("Range", fmt.Sprintf("%d-", offset))
