@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-
-	"github.com/getlantern/flashlight/proxied"
 )
 
 type roundTripper struct {
@@ -49,18 +47,6 @@ type Download struct {
 	Url string
 }
 
-// New initializes a new Download object which will download
-// the content from url into target.
-func New(url string, target Target) *Download {
-	return &Download{
-		HttpClient: new(http.Client),
-		Progress:   make(chan int),
-		Method:     "GET",
-		Url:        url,
-		Target:     target,
-	}
-}
-
 // Get downloads the content of a url to a target destination.
 //
 // Only HTTP/1.1 servers that implement the Range header support resuming a
@@ -85,9 +71,6 @@ func (d *Download) Get() (err error) {
 		return
 	}
 
-	frontedURL := *req.URL
-	frontedURL.Host = "d2yl1zps97e5mx.cloudfront.net"
-
 	// we have to add headers like this so they get used across redirects
 	trans := d.HttpClient.Transport
 	if trans == nil {
@@ -96,9 +79,6 @@ func (d *Download) Get() (err error) {
 
 	d.HttpClient.Transport = &roundTripper{
 		RoundTripFn: func(r *http.Request) (*http.Response, error) {
-
-			// Always add the domain fronting header.
-			proxied.PrepareForFronting(req, frontedURL.String())
 
 			// add header for download continuation
 			if offset > 0 {
@@ -191,7 +171,7 @@ func (m *meteredReader) Read(b []byte) (n int, err error) {
 		m.totalRead += int64(nChunk)
 
 		if m.totalRead > (m.ticks * chunkSize) {
-			m.ticks += 1
+			m.ticks++
 			// try to send on channel, but don't block if it's full
 			select {
 			case m.progress <- int(m.ticks + 1):
