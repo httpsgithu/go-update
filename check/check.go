@@ -14,7 +14,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/getlantern/flashlight/proxied"
 	"github.com/getlantern/go-update"
 	"github.com/getlantern/golog"
 	"github.com/kardianos/osext"
@@ -145,10 +144,6 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	frontedURL := *req.URL
-	frontedURL.Host = "d2yl1zps97e5mx.cloudfront.net"
-	proxied.PrepareForFronting(req, frontedURL.String())
 
 	req.Header.Set("Content-Type", "application/json")
 

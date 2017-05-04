@@ -130,11 +130,12 @@ import (
 	"path/filepath"
 
 	"github.com/getlantern/go-update/download"
+	"github.com/getlantern/golog"
 	"github.com/kardianos/osext"
 	"github.com/kr/binarydist"
 )
 
-// The type of a binary patch, if any. Only bsdiff is supported
+// PatchType is the type of a binary patch, if any. Only bsdiff is supported
 type PatchType string
 
 const (
@@ -160,6 +161,8 @@ type Update struct {
 
 	// signature to use for signature verification
 	Signature []byte
+
+	log golog.Logger
 }
 
 func SetHttpClient(httpClient *http.Client) {
@@ -192,6 +195,7 @@ func New() *Update {
 	return &Update{
 		TargetPath: "",
 		PatchType:  PATCHTYPE_NONE,
+		log:        golog.LoggerFor("lantern-update"),
 	}
 }
 
@@ -292,7 +296,7 @@ func (u *Update) FromFile(path string) (err error, errRecover error) {
 	}
 	defer func() {
 		if err := fp.Close(); err != nil {
-			fmt.Errorf("Unable to close file: %v\n", err)
+			u.log.Errorf("Unable to close file: %v\n", err)
 		}
 	}()
 
@@ -334,7 +338,7 @@ func (u *Update) FromStream(updateWith io.Reader) (err error, errRecover error) 
 	// apply a patch if requested
 	switch u.PatchType {
 	case PATCHTYPE_BSDIFF:
-		newBytes, err = applyPatch(updateWith, updatePath)
+		newBytes, err = u.applyPatch(updateWith, updatePath)
 		if err != nil {
 			return
 		}
@@ -403,13 +407,13 @@ func (u *Update) FromStream(updateWith io.Reader) (err error, errRecover error) 
 	// TODO: Document why are we doing this second fp.Close() at all?
 	defer func() { _ = fp.Close() }()
 	if _, err = io.Copy(fp, bytes.NewReader(newBytes)); err != nil {
-		fmt.Errorf("Unable to copy data: %v\n", err)
+		u.log.Errorf("Unable to copy data: %v\n", err)
 	}
 
 	// if we don't call fp.Close(), windows won't let us move the new executable
 	// because the file will still be "in use"
 	if err := fp.Close(); err != nil {
-		fmt.Errorf("Unable to close file: %v\n", err)
+		u.log.Errorf("Unable to close file: %v\n", err)
 	}
 
 	// this is where we'll move the executable to so that we can swap in the updated replacement
@@ -456,7 +460,7 @@ func (u *Update) ValidateMessage(message []byte, expectedSignature []byte, nonce
 	return verifySignature(append(message, []byte(fmt.Sprintf("%d", nonce))...), expectedSignature, u.PublicKey)
 }
 
-// CanUpdate() determines whether the process has the correct permissions to
+// CanUpdate determines whether the process has the correct permissions to
 // perform the requested update. If the update can proceed, it returns nil, otherwise
 // it returns the error that would occur if an update were attempted.
 func (u *Update) CanUpdate() (err error) {
@@ -476,14 +480,14 @@ func (u *Update) CanUpdate() (err error) {
 		return
 	}
 	if err := fp.Close(); err != nil {
-		fmt.Errorf("Unable to close file: %v\n", err)
+		u.log.Errorf("Unable to close file: %v\n", err)
 	}
 
 	_ = os.Remove(newPath)
 	return
 }
 
-func applyPatch(patch io.Reader, updatePath string) ([]byte, error) {
+func (u *Update) applyPatch(patch io.Reader, updatePath string) ([]byte, error) {
 	// open the file to update
 	old, err := os.Open(updatePath)
 	if err != nil {
@@ -491,7 +495,7 @@ func applyPatch(patch io.Reader, updatePath string) ([]byte, error) {
 	}
 	defer func() {
 		if err := old.Close(); err != nil {
-			fmt.Errorf("Unable to close file: %v\n", err)
+			u.log.Errorf("Unable to close file: %v\n", err)
 		}
 	}()
 
