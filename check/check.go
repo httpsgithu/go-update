@@ -49,7 +49,7 @@ type Params struct {
 	// hardware architecture of target platform
 	Arch string `json:"-"`
 	// Semantic version of the OS
-	OSVersion string `json:"-"`
+	OSVersion string `json:"os_version"`
 	// application-level user identifier
 	UserId string `json:"user_id"`
 	// checksum of the binary to replace (used for returning diff patches)
