@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/go-update"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/osversion"
 	"github.com/kardianos/osext"
 )
 
@@ -47,6 +48,8 @@ type Params struct {
 	OS string `json:"-"`
 	// hardware architecture of target platform
 	Arch string `json:"-"`
+	// Semantic version of the OS
+	OSVersion string `json:"-"`
 	// application-level user identifier
 	UserId string `json:"user_id"`
 	// checksum of the binary to replace (used for returning diff patches)
@@ -108,6 +111,12 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 
 	if p.Version == 0 {
 		p.Version = 1
+	}
+
+	if osVersion, err := osversion.GetSemanticVersion(); err != nil {
+		log.Errorf("Could not read semantic version: %v", err)
+	} else {
+		p.OSVersion = osVersion.String()
 	}
 
 	// ignore errors auto-populating the checksum
