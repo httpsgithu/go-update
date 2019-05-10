@@ -12,6 +12,5 @@ func TestToJson(t *testing.T) {
 	assert.NoError(t, p.fill(""), "should have no error filling params")
 	body, err := json.Marshal(p)
 	assert.NoError(t, err, "should have no error marshalling params to JSON")
-	_ = body
 	t.Logf("JSON is: %+v", string(body))
 }
