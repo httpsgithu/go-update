@@ -49,7 +49,7 @@ type Params struct {
 	// hardware architecture of target platform
 	Arch string `json:"-"`
 	// Semantic version of the OS
-	OSVersion string `json:"-"`
+	OSVersion string `json:"os_version"`
 	// application-level user identifier
 	UserId string `json:"user_id"`
 	// checksum of the binary to replace (used for returning diff patches)
@@ -85,14 +85,7 @@ func init() {
 	rand = mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
 }
 
-// CheckForUpdate makes an HTTP post to a URL with the JSON serialized
-// representation of Params. It returns the deserialized result object
-// returned by the remote endpoint or an error. If you do not set
-// OS/Arch, CheckForUpdate will populate them for you. Similarly, if
-// Version is 0, it will be set to 1. Lastly, if Checksum is the empty
-// string, it will be automatically be computed for the running program's
-// executable file.
-func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) {
+func (p *Params) fill(targetPath string) error {
 	if p.Tags == nil {
 		p.Tags = make(map[string]string)
 	}
@@ -122,18 +115,18 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	// ignore errors auto-populating the checksum
 	// if it fails, you just won't be able to patch
 	if p.OS != "android" {
-		if up.TargetPath == "" {
+		if targetPath == "" {
 			var err error
 			p.Checksum, err = defaultChecksum()
 			if err != nil {
 				log.Errorf("Error while trying to get default checksum: %v", err)
-				return nil, err
+				return err
 			}
 		} else {
-			checksum, err := update.ChecksumForFile(up.TargetPath)
+			checksum, err := update.ChecksumForFile(targetPath)
 			if err != nil {
 				log.Errorf("Could not get checksum: %v", err)
-				return nil, err
+				return err
 			}
 			p.Checksum = hex.EncodeToString(checksum)
 		}
@@ -142,7 +135,20 @@ func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) 
 	p.Tags["os"] = p.OS
 	p.Tags["arch"] = p.Arch
 	p.Tags["channel"] = p.Channel
+	return nil
+}
 
+// CheckForUpdate makes an HTTP post to a URL with the JSON serialized
+// representation of Params. It returns the deserialized result object
+// returned by the remote endpoint or an error. If you do not set
+// OS/Arch, CheckForUpdate will populate them for you. Similarly, if
+// Version is 0, it will be set to 1. Lastly, if Checksum is the empty
+// string, it will be automatically be computed for the running program's
+// executable file.
+func (p *Params) CheckForUpdate(url string, up *update.Update) (*Result, error) {
+	if err := p.fill(up.TargetPath); err != nil {
+		return nil, err
+	}
 	body, err := json.Marshal(p)
 	if err != nil {
 		log.Errorf("Error marshalling json for update request: %v", err)
