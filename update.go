@@ -131,7 +131,6 @@ import (
 
 	"github.com/getlantern/go-update/download"
 	"github.com/getlantern/golog"
-	"github.com/kardianos/osext"
 	"github.com/kr/binarydist"
 )
 
@@ -140,7 +139,7 @@ type PatchType string
 
 const (
 	PATCHTYPE_BSDIFF PatchType = "bsdiff"
-	PATCHTYPE_NONE             = ""
+	PATCHTYPE_NONE   PatchType = ""
 )
 
 // HTTPClient is the client to be used for http requests.
@@ -175,7 +174,7 @@ func SetHttpClient(httpClient *http.Client) {
 
 func (u *Update) getPath() (string, error) {
 	if u.TargetPath == "" {
-		return osext.Executable()
+		return os.Executable()
 	} else {
 		return u.TargetPath, nil
 	}
