@@ -11,13 +11,13 @@ import (
 	mathrand "math/rand"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"runtime"
 	"time"
 
 	"github.com/getlantern/go-update"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/osversion"
-	"github.com/kardianos/osext"
 )
 
 type Initiative string
@@ -295,7 +295,7 @@ func (r *Result) Update() (err error, errRecover error) {
 }
 
 func defaultChecksum() (string, error) {
-	path, err := osext.Executable()
+	path, err := os.Executable()
 	if err != nil {
 		return "", err
 	}
