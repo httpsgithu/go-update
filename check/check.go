@@ -106,10 +106,10 @@ func (p *Params) fill(targetPath string) error {
 		p.Version = 1
 	}
 
-	if osVersion, err := osversion.GetSemanticVersion(); err != nil {
+	if v, err := osversion.GetSemanticVersion(); err != nil {
 		log.Errorf("Could not read semantic version: %v", err)
 	} else {
-		p.OSVersion = osVersion.String()
+		p.OSVersion = v
 	}
 
 	// ignore errors auto-populating the checksum
