@@ -107,7 +107,7 @@ func (p *Params) fill(targetPath string) error {
 	}
 
 	if osVersion, err := osversion.GetSemanticVersion(); err != nil {
-		log.Errorf("Could not read semantic version: %v", err)
+		log.Errorf("Could not read semantic version of OS: %v", err)
 	} else {
 		p.OSVersion = osVersion.String()
 	}
